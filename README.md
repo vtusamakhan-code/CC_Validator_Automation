@@ -1,18 +1,48 @@
-# Welcome to your Lovable project
+# Credit Card OCR & Validation Pipeline (Concise)
 
-## Project info
+## Overview
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+This system processes credit card images from subfolders, extracts card data using a deployed OCR API, validates card numbers with the Luhn algorithm, and updates a **single user-uploaded CSV file**.
 
-## How can I edit this code?
+## Inputs
 
-There are several ways of editing your application.
+* **One CSV file** (uploaded once and used throughout)
+* **One main directory** containing multiple subfolders
 
-**Use Lovable**
+  * Each subfolder contains **1–3 credit card images**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Processing Flow
 
-Changes made via Lovable will be committed automatically to this repo.
+1. Read the uploaded CSV file.
+2. Iterate through each subfolder in the main directory.
+3. Send images to OCR endpoint:
+
+   * `POST /credit_card` (deployed API)
+4. Extract credit card number from OCR response.
+5. Validate extracted number using **Luhn algorithm**.
+6. Immediately update the same CSV file.
+
+## CSV Update Rules (Strict)
+
+* **Do NOT create new CSV files**.
+* **Only update these two columns**:
+
+  * `CCN Actual`
+  * `Luhn Test Actual`
+* All other columns must remain unchanged.
+
+## Output
+
+* One continuously updated CSV file
+* Each row reflects OCR result and Luhn validation status
+* Final CSV is available for download after processing completes
+
+## Key Constraints
+
+* One CSV for the entire process
+* One API endpoint only (`/credit_card`)
+* No per-folder CSVs
+* No delayed validation
 
 **Use your preferred IDE**
 
@@ -59,15 +89,3 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
