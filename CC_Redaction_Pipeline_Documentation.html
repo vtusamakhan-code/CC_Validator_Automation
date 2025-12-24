@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CC Redaction Pipeline - Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .page {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 50px;
+            margin-bottom: 30px;
+            page-break-after: always;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 3px solid #10b981;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            color: #1e293b;
+            margin-bottom: 10px;
+        }
+        
+        .header .subtitle {
+            font-size: 1.2em;
+            color: #64748b;
+        }
+        
+        .header .version {
+            margin-top: 15px;
+            padding: 8px 20px;
+            background: #10b981;
+            color: white;
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 0.9em;
+        }
+        
+        h2 {
+            color: #1e293b;
+            font-size: 1.8em;
+            margin: 30px 0 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        h3 {
+            color: #334155;
+            font-size: 1.3em;
+            margin: 25px 0 15px;
+        }
+        
+        p {
+            margin-bottom: 15px;
+            color: #475569;
+        }
+        
+        .diagram {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 25px 0;
+            text-align: center;
+        }
+        
+        .diagram svg {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .flow-box {
+            display: inline-block;
+            padding: 15px 25px;
+            border-radius: 8px;
+            margin: 10px;
+            font-weight: 600;
+        }
+        
+        .flow-input {
+            background: #dbeafe;
+            border: 2px solid #3b82f6;
+            color: #1e40af;
+        }
+        
+        .flow-process {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            color: #92400e;
+        }
+        
+        .flow-api {
+            background: #d1fae5;
+            border: 2px solid #10b981;
+            color: #065f46;
+        }
+        
+        .flow-output {
+            background: #ede9fe;
+            border: 2px solid #8b5cf6;
+            color: #5b21b6;
+        }
+        
+        .arrow {
+            font-size: 2em;
+            color: #94a3b8;
+            margin: 0 10px;
+        }
+        
+        .arrow-down {
+            display: block;
+            font-size: 2em;
+            color: #94a3b8;
+            margin: 15px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        th {
+            background: #1e293b;
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        
+        .highlight-box {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 25px 0;
+        }
+        
+        .highlight-box h3 {
+            color: white;
+            margin-top: 0;
+        }
+        
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: #10b981;
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border-left: 4px solid #10b981;
+        }
+        
+        .step-content h4 {
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+        
+        .step-content p {
+            margin: 0;
+            color: #64748b;
+        }
+        
+        .folder-structure {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 25px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            line-height: 1.8;
+        }
+        
+        .folder-structure .folder {
+            color: #fbbf24;
+        }
+        
+        .folder-structure .file {
+            color: #34d399;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        .scenario-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        
+        .scenario-card h4 {
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .scenario-icon {
+            font-size: 1.5em;
+        }
+        
+        .print-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 1em;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
+        
+        .print-btn:hover {
+            background: #059669;
+        }
+        
+        @media print {
+            .print-btn {
+                display: none;
+            }
+            
+            body {
+                background: white;
+            }
+            
+            .container {
+                padding: 0;
+            }
+            
+            .page {
+                box-shadow: none;
+                margin: 0;
+                padding: 30px;
+            }
+        }
+        
+        .visual-flow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+        }
+        
+        .visual-flow-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .flow-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px 20px;
+            text-align: center;
+            min-width: 120px;
+        }
+        
+        .flow-card.input {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        
+        .flow-card.api {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+        
+        .flow-card.process {
+            border-color: #f59e0b;
+            background: #fffbeb;
+        }
+        
+        .flow-card.output {
+            border-color: #8b5cf6;
+            background: #f5f3ff;
+        }
+        
+        .flow-card .icon {
+            font-size: 2em;
+            margin-bottom: 8px;
+        }
+        
+        .flow-card .label {
+            font-weight: 600;
+            color: #334155;
+        }
+        
+        .connector {
+            font-size: 1.5em;
+            color: #94a3b8;
+        }
+        
+        .image-comparison {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 25px 0;
+        }
+        
+        .image-box {
+            text-align: center;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 10px;
+            flex: 1;
+            max-width: 200px;
+        }
+        
+        .image-box .card-visual {
+            width: 150px;
+            height: 95px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            margin: 0 auto 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 0.8em;
+        }
+        
+        .image-box .card-visual.redacted .card-number {
+            background: black;
+            color: black;
+            padding: 5px 20px;
+            border-radius: 3px;
+        }
+        
+        .image-box .label {
+            font-weight: 600;
+            color: #334155;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Page 1: Cover -->
+        <div class="page">
+            <div class="header">
+                <h1>🔒 CC Redaction Pipeline</h1>
+                <p class="subtitle">Credit Card Image Processing & Redaction System</p>
+                <span class="version">Version 1.0 | December 2024</span>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>📌 What This System Does</h3>
+                <p style="color: white; margin: 0;">
+                    Automatically processes credit card images, detects sensitive information 
+                    (card numbers & CVCs), and creates redacted versions with the sensitive 
+                    data masked out - all while keeping the original images safe.
+                </p>
+            </div>
+            
+            <h2>🎯 Key Features</h2>
+            <table>
+                <tr>
+                    <th>Feature</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>📁 Folder-Based Processing</td>
+                    <td>Upload entire folders with multiple customer subfolders</td>
+                </tr>
+                <tr>
+                    <td>🤖 Automatic Detection</td>
+                    <td>AI identifies front/back of cards automatically</td>
+                </tr>
+                <tr>
+                    <td>🔐 Smart Redaction</td>
+                    <td>Masks card numbers and CVC codes precisely</td>
+                </tr>
+                <tr>
+                    <td>📥 Separate Downloads</td>
+                    <td>Download original and redacted images separately</td>
+                </tr>
+                <tr>
+                    <td>📦 Bulk Export</td>
+                    <td>Download all images as organized ZIP files</td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Page 2: Input Structure -->
+        <div class="page">
+            <h2>📂 Input: Folder Structure</h2>
+            <p>
+                The system expects a main folder containing customer subfolders. 
+                Each subfolder contains credit card images (1, 2, or 3 images).
+            </p>
+            
+            <div class="folder-structure">
+                <span class="folder">📁 main_folder/</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="folder">📁 JOHN_DOE_abc123/</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">🖼️ front.jpg</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">🖼️ back.jpg</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="folder">📁 JANE_SMITH_def456/</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">🖼️ CC1.jpg</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">🖼️ CC2.jpg</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">🖼️ CC3.jpg</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="folder">📁 BOB_WILSON_ghi789/</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">🖼️ single_card.jpg</span>
+            </div>
+            
+            <h3>📋 Input Requirements</h3>
+            <table>
+                <tr>
+                    <th>Requirement</th>
+                    <th>Details</th>
+                </tr>
+                <tr>
+                    <td>Image Formats</td>
+                    <td>JPG, JPEG, PNG, GIF, BMP, WebP</td>
+                </tr>
+                <tr>
+                    <td>Images per Folder</td>
+                    <td>1 to 3 images per customer folder</td>
+                </tr>
+                <tr>
+                    <td>Folder Naming</td>
+                    <td>CUSTOMER_NAME_uniqueID format</td>
+                </tr>
+                <tr>
+                    <td>No CSV Required</td>
+                    <td>System works purely from folder structure</td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Page 3: High-Level Flow -->
+        <div class="page">
+            <h2>🔄 High-Level Process Flow</h2>
+            <p>
+                The system follows these main steps to process credit card images:
+            </p>
+            
+            <div class="diagram">
+                <div class="visual-flow">
+                    <div class="visual-flow-row">
+                        <div class="flow-card input">
+                            <div class="icon">📁</div>
+                            <div class="label">Upload Folder</div>
+                        </div>
+                    </div>
+                    
+                    <div class="connector">⬇️</div>
+                    
+                    <div class="visual-flow-row">
+                        <div class="flow-card api">
+                            <div class="icon">🔍</div>
+                            <div class="label">Categorize Images</div>
+                        </div>
+                    </div>
+                    
+                    <div class="connector">⬇️</div>
+                    
+                    <div class="visual-flow-row">
+                        <div class="flow-card api">
+                            <div class="icon">🔗</div>
+                            <div class="label">Group Front/Back</div>
+                        </div>
+                    </div>
+                    
+                    <div class="connector">⬇️</div>
+                    
+                    <div class="visual-flow-row">
+                        <div class="flow-card process">
+                            <div class="icon">🖼️</div>
+                            <div class="label">Merge Images</div>
+                        </div>
+                    </div>
+                    
+                    <div class="connector">⬇️</div>
+                    
+                    <div class="visual-flow-row">
+                        <div class="flow-card api">
+                            <div class="icon">📍</div>
+                            <div class="label">Get Redaction Points</div>
+                        </div>
+                    </div>
+                    
+                    <div class="connector">⬇️</div>
+                    
+                    <div class="visual-flow-row">
+                        <div class="flow-card process">
+                            <div class="icon">✂️</div>
+                            <div class="label">Split & Apply</div>
+                        </div>
+                    </div>
+                    
+                    <div class="connector">⬇️</div>
+                    
+                    <div class="visual-flow-row">
+                        <div class="flow-card output">
+                            <div class="icon">✅</div>
+                            <div class="label">Separate Redacted Images</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #eff6ff; border: 2px solid #3b82f6;"></div>
+                    <span>Input</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ecfdf5; border: 2px solid #10b981;"></div>
+                    <span>API Call</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fffbeb; border: 2px solid #f59e0b;"></div>
+                    <span>Processing</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f5f3ff; border: 2px solid #8b5cf6;"></div>
+                    <span>Output</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Page 4: Detailed Steps -->
+        <div class="page">
+            <h2>📝 Step-by-Step Process</h2>
+            
+            <div class="step">
+                <span class="step-number">1</span>
+                <div class="step-content">
+                    <h4>Upload Main Folder</h4>
+                    <p>User selects the main folder containing all customer subfolders. System scans and identifies all image files.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">2</span>
+                <div class="step-content">
+                    <h4>Categorize Images (API Call)</h4>
+                    <p>System sends all images to the categorization API which identifies which images are credit cards and marks them as potential front or back.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">3</span>
+                <div class="step-content">
+                    <h4>Group Credit Cards (API Call)</h4>
+                    <p>API analyzes the categorized images and pairs front images with their matching back images to form complete card sets.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">4</span>
+                <div class="step-content">
+                    <h4>Merge Paired Images</h4>
+                    <p>For cards with both front and back, images are combined vertically (front on top, back below) for API processing.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">5</span>
+                <div class="step-content">
+                    <h4>Get Redaction Coordinates (API Call)</h4>
+                    <p>The merged image is sent to the OCR API which returns exact coordinates (positions) of card numbers and CVC codes.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">6</span>
+                <div class="step-content">
+                    <h4>Split Coordinates</h4>
+                    <p>System determines which coordinates belong to front image and which to back image based on vertical position.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">7</span>
+                <div class="step-content">
+                    <h4>Apply Redaction Separately</h4>
+                    <p>Black masks are applied to the ORIGINAL separate images (not merged) at the identified locations.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">8</span>
+                <div class="step-content">
+                    <h4>Save & Download</h4>
+                    <p>Both original and redacted versions are available for preview and download as separate files.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Page 5: Scenarios -->
+        <div class="page">
+            <h2>📊 Processing Scenarios</h2>
+            
+            <div class="scenario-card">
+                <h4><span class="scenario-icon">1️⃣</span> Single Image Folder</h4>
+                <p>When a folder contains only one image:</p>
+                <div class="diagram" style="padding: 20px;">
+                    <div class="visual-flow-row">
+                        <div class="flow-card input">
+                            <div class="label">Single.jpg</div>
+                        </div>
+                        <span class="connector">→</span>
+                        <div class="flow-card api">
+                            <div class="label">OCR API</div>
+                        </div>
+                        <span class="connector">→</span>
+                        <div class="flow-card output">
+                            <div class="label">Redacted.jpg</div>
+                        </div>
+                    </div>
+                </div>
+                <p><strong>Result:</strong> 1 redacted image</p>
+            </div>
+            
+            <div class="scenario-card">
+                <h4><span class="scenario-icon">2️⃣</span> Two Images (Front + Back)</h4>
+                <p>When a folder contains front and back of same card:</p>
+                <div class="diagram" style="padding: 20px;">
+                    <div class="visual-flow">
+                        <div class="visual-flow-row">
+                            <div class="flow-card input">
+                                <div class="label">Front.jpg</div>
+                            </div>
+                            <div class="flow-card input">
+                                <div class="label">Back.jpg</div>
+                            </div>
+                        </div>
+                        <div class="connector">⬇️ Merge</div>
+                        <div class="flow-card process">
+                            <div class="label">Combined Image</div>
+                        </div>
+                        <div class="connector">⬇️ API</div>
+                        <div class="flow-card api">
+                            <div class="label">Get Coordinates</div>
+                        </div>
+                        <div class="connector">⬇️ Split & Apply</div>
+                        <div class="visual-flow-row">
+                            <div class="flow-card output">
+                                <div class="label">Front_Redacted.jpg</div>
+                            </div>
+                            <div class="flow-card output">
+                                <div class="label">Back_Redacted.jpg</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p><strong>Result:</strong> 2 separate redacted images</p>
+            </div>
+            
+            <div class="scenario-card">
+                <h4><span class="scenario-icon">3️⃣</span> Three Images</h4>
+                <p>When a folder contains multiple cards:</p>
+                <p>System groups them (e.g., Card1: front+back, Card2: single) and processes each group separately.</p>
+                <p><strong>Result:</strong> Multiple separate redacted images</p>
+            </div>
+        </div>
+        
+        <!-- Page 6: Visual Example -->
+        <div class="page">
+            <h2>🖼️ Visual Example: Before & After</h2>
+            
+            <h3>Front Card Processing</h3>
+            <div class="image-comparison">
+                <div class="image-box">
+                    <div class="card-visual">
+                        <div style="font-size: 0.9em;">BANK NAME</div>
+                        <div class="card-number" style="margin: 8px 0; letter-spacing: 2px;">4532 •••• •••• 1234</div>
+                        <div style="font-size: 0.8em;">JOHN DOE</div>
+                    </div>
+                    <div class="label">Original Front</div>
+                </div>
+                <div style="font-size: 3em; color: #10b981; align-self: center;">→</div>
+                <div class="image-box">
+                    <div class="card-visual redacted">
+                        <div style="font-size: 0.9em;">BANK NAME</div>
+                        <div class="card-number">████████████</div>
+                        <div style="font-size: 0.8em;">JOHN DOE</div>
+                    </div>
+                    <div class="label">Redacted Front</div>
+                </div>
+            </div>
+            
+            <h3>Back Card Processing</h3>
+            <div class="image-comparison">
+                <div class="image-box">
+                    <div class="card-visual" style="background: linear-gradient(135deg, #374151 0%, #1f2937 100%);">
+                        <div style="background: #000; height: 20px; width: 100%; margin-bottom: 15px;"></div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div style="background: white; color: black; padding: 3px 8px; font-size: 0.8em;">SIGNATURE</div>
+                            <div style="background: white; color: black; padding: 3px 8px; font-size: 0.8em;">123</div>
+                        </div>
+                    </div>
+                    <div class="label">Original Back</div>
+                </div>
+                <div style="font-size: 3em; color: #10b981; align-self: center;">→</div>
+                <div class="image-box">
+                    <div class="card-visual" style="background: linear-gradient(135deg, #374151 0%, #1f2937 100%);">
+                        <div style="background: #000; height: 20px; width: 100%; margin-bottom: 15px;"></div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div style="background: white; color: black; padding: 3px 8px; font-size: 0.8em;">SIGNATURE</div>
+                            <div style="background: black; color: black; padding: 3px 8px; font-size: 0.8em;">███</div>
+                        </div>
+                    </div>
+                    <div class="label">Redacted Back</div>
+                </div>
+            </div>
+            
+            <div class="highlight-box" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
+                <h3>💡 Key Point</h3>
+                <p style="color: white; margin: 0;">
+                    Even though we merge images for API processing, the final output is 
+                    <strong>separate redacted images</strong> - one for front and one for back. 
+                    This preserves the original file structure while ensuring accurate redaction.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Page 7: Output Structure -->
+        <div class="page">
+            <h2>📤 Output Structure</h2>
+            
+            <p>After processing, images are organized in the following structure:</p>
+            
+            <div class="folder-structure">
+                <span class="folder">📁 Downloads/</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="folder">📁 original/</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="folder">📁 JOHN_DOE_abc123/</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">🖼️ front.jpg</span> <span style="color: #94a3b8;">← Original front</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">🖼️ back.jpg</span> <span style="color: #94a3b8;">← Original back</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="folder">📁 redacted/</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="folder">📁 JOHN_DOE_abc123/</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">🖼️ front.jpg</span> <span style="color: #94a3b8;">← Card number masked</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">🖼️ back.jpg</span> <span style="color: #94a3b8;">← CVC masked</span>
+            </div>
+            
+            <h3>📥 Download Options</h3>
+            <table>
+                <tr>
+                    <th>Option</th>
+                    <th>Contents</th>
+                    <th>Use Case</th>
+                </tr>
+                <tr>
+                    <td>Download Individual</td>
+                    <td>Single image (original or redacted)</td>
+                    <td>Quick access to specific file</td>
+                </tr>
+                <tr>
+                    <td>Originals ZIP</td>
+                    <td>All original images organized by folder</td>
+                    <td>Backup of source files</td>
+                </tr>
+                <tr>
+                    <td>Redacted ZIP</td>
+                    <td>All redacted images organized by folder</td>
+                    <td>Share safe versions</td>
+                </tr>
+                <tr>
+                    <td>Download All</td>
+                    <td>Both original and redacted in one ZIP</td>
+                    <td>Complete archive</td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Page 8: UI Guide -->
+        <div class="page">
+            <h2>🖥️ User Interface Guide</h2>
+            
+            <h3>Step 1: Upload Folder</h3>
+            <div class="step">
+                <span class="step-number">📁</span>
+                <div class="step-content">
+                    <h4>Click "Select main folder"</h4>
+                    <p>Choose the folder containing all customer subfolders. The system will scan and show how many folders were detected.</p>
+                </div>
+            </div>
+            
+            <h3>Step 2: Start Processing</h3>
+            <div class="step">
+                <span class="step-number">▶️</span>
+                <div class="step-content">
+                    <h4>Click "Start Redaction Pipeline"</h4>
+                    <p>Processing begins. You'll see real-time progress showing which customer is being processed.</p>
+                </div>
+            </div>
+            
+            <h3>Step 3: Review Results</h3>
+            <div class="step">
+                <span class="step-number">👁️</span>
+                <div class="step-content">
+                    <h4>Preview Images</h4>
+                    <p>Click on any result to expand and view. Toggle between "Original" and "Redacted" views to compare.</p>
+                </div>
+            </div>
+            
+            <h3>Step 4: Download</h3>
+            <div class="step">
+                <span class="step-number">📥</span>
+                <div class="step-content">
+                    <h4>Download Files</h4>
+                    <p>Download individual files or use bulk download buttons for ZIP archives.</p>
+                </div>
+            </div>
+            
+            <div class="highlight-box" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                <h3>⚠️ Important Notes</h3>
+                <ul style="color: white; margin: 0; padding-left: 20px;">
+                    <li>Processing time depends on number of images</li>
+                    <li>Internet connection required for API calls</li>
+                    <li>Original images are never modified</li>
+                    <li>Redacted images are generated fresh each time</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Page 9: Summary -->
+        <div class="page">
+            <h2>✅ Summary</h2>
+            
+            <table>
+                <tr>
+                    <th>Step</th>
+                    <th>Action</th>
+                    <th>Type</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>Upload folder with customer subfolders</td>
+                    <td>User Action</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Categorize images (identify credit cards)</td>
+                    <td>API Call</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Group front/back pairs</td>
+                    <td>API Call</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Merge paired images for processing</td>
+                    <td>System</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>Get redaction coordinates</td>
+                    <td>API Call</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Split coordinates by image</td>
+                    <td>System</td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td>Apply redaction to separate images</td>
+                    <td>System</td>
+                </tr>
+                <tr>
+                    <td>8</td>
+                    <td>Download results</td>
+                    <td>User Action</td>
+                </tr>
+            </table>
+            
+            <div class="highlight-box">
+                <h3>🎯 End Result</h3>
+                <p style="color: white; margin: 0;">
+                    For each credit card processed, you receive:
+                </p>
+                <ul style="color: white; margin-top: 10px; padding-left: 20px;">
+                    <li><strong>Original images</strong> - Unchanged source files</li>
+                    <li><strong>Redacted images</strong> - Card numbers and CVCs masked with black boxes</li>
+                    <li><strong>Separate files</strong> - Front and back saved individually (not merged)</li>
+                </ul>
+            </div>
+            
+            <div style="text-align: center; margin-top: 40px; padding-top: 30px; border-top: 2px solid #e2e8f0;">
+                <p style="color: #64748b;">
+                    📧 For questions or support, contact the development team.
+                </p>
+                <p style="color: #94a3b8; font-size: 0.9em;">
+                    Document Version 1.0 | December 2024
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <button class="print-btn" onclick="window.print()">
+        🖨️ Print / Save as PDF
+    </button>
+</body>
+</html>
+

@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CC Redaction Pipeline - Technical Flow</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.7;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .page {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 50px;
+            margin-bottom: 30px;
+            page-break-after: always;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 3px solid #10b981;
+        }
+        .header h1 { font-size: 2.2em; color: #1e293b; margin-bottom: 10px; }
+        .header .subtitle { font-size: 1.1em; color: #64748b; }
+        h2 {
+            color: #1e293b;
+            font-size: 1.5em;
+            margin: 30px 0 20px;
+            padding: 10px 15px;
+            background: #f1f5f9;
+            border-left: 4px solid #10b981;
+            border-radius: 0 8px 8px 0;
+        }
+        h3 { color: #334155; font-size: 1.2em; margin: 20px 0 10px; }
+        p { margin-bottom: 15px; color: #475569; }
+        .why-box {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .why-box h4 { color: #92400e; margin-bottom: 10px; }
+        .why-box p { color: #78350f; margin: 0; }
+        .step-box {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        .step-box h4 {
+            color: #1e293b;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .step-num {
+            background: #10b981;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        .highlight { color: #34d399; }
+        .highlight2 { color: #fbbf24; }
+        .highlight3 { color: #f472b6; }
+        .diagram-box {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .merged-visual {
+            display: inline-block;
+            border: 3px solid #3b82f6;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px;
+        }
+        .front-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 50px;
+            text-align: center;
+        }
+        .back-section {
+            background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+            color: white;
+            padding: 30px 50px;
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th {
+            background: #1e293b;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        tr:nth-child(even) { background: #f8fafc; }
+        .formula-box {
+            background: #ecfdf5;
+            border: 2px solid #10b981;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .formula {
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            color: #065f46;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 10px 0;
+        }
+        .example-box {
+            background: #eff6ff;
+            border: 2px solid #3b82f6;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .example-box h4 { color: #1e40af; margin-bottom: 10px; }
+        .print-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 1em;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
+        @media print {
+            .print-btn { display: none; }
+            body { background: white; }
+            .page { box-shadow: none; margin: 0; padding: 30px; }
+        }
+        .flow-arrow {
+            font-size: 2em;
+            color: #10b981;
+            text-align: center;
+            margin: 15px 0;
+        }
+        .split-diagram {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .split-item {
+            text-align: center;
+        }
+        .split-item .box {
+            border: 3px solid;
+            border-radius: 10px;
+            padding: 20px 30px;
+            margin-bottom: 10px;
+        }
+        .split-item.front .box {
+            border-color: #667eea;
+            background: #eef2ff;
+        }
+        .split-item.back .box {
+            border-color: #374151;
+            background: #f3f4f6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <!-- Page 1: Why We Merge & Split -->
+        <div class="page">
+            <div class="header">
+                <h1>🔒 CC Redaction Pipeline</h1>
+                <p class="subtitle">Technical Flow - Why & How It Works</p>
+            </div>
+
+            <h2>❓ WHY Do We Merge Images?</h2>
+            
+            <div class="why-box">
+                <h4>🎯 The Problem:</h4>
+                <p>
+                    The OCR API needs to see the <strong>complete credit card information</strong> to accurately detect card numbers and CVCs. 
+                    Sometimes the card number is on the FRONT, sometimes on the BACK. The CVC is usually on the BACK.
+                    By merging both images, the API can see everything at once and return ALL coordinates in one call.
+                </p>
+            </div>
+
+            <div class="why-box">
+                <h4>🎯 The Solution:</h4>
+                <p>
+                    We merge FRONT + BACK images vertically (front on top, back below), send to API, get coordinates, 
+                    then <strong>split the coordinates back</strong> to apply redaction on the ORIGINAL separate images.
+                </p>
+            </div>
+
+            <h2>❓ WHY Do We Split Coordinates?</h2>
+            
+            <div class="why-box">
+                <h4>🎯 The Requirement:</h4>
+                <p>
+                    Client wants <strong>SEPARATE redacted images</strong> (front.jpg and back.jpg), NOT one merged image.
+                    So we must figure out which coordinates belong to which original image.
+                </p>
+            </div>
+
+            <h3>📐 The Height-Based Logic</h3>
+            <p>
+                When we merge images vertically, the FRONT image is on TOP. So any coordinate with a small Y value 
+                belongs to the front image. Any coordinate with a large Y value (below the front image height) 
+                belongs to the back image.
+            </p>
+
+            <div class="diagram-box">
+                <div class="merged-visual">
+                    <div class="front-section">
+                        <strong>FRONT IMAGE</strong><br>
+                        <small>Height = 500px</small><br>
+                        <small>Y coordinates: 0 to 499</small><br><br>
+                        <span style="background: rgba(0,0,0,0.3); padding: 5px 15px; border-radius: 5px;">
+                            Card Number at Y=300 ✓
+                        </span>
+                    </div>
+                    <div class="back-section">
+                        <strong>BACK IMAGE</strong><br>
+                        <small>Height = 400px</small><br>
+                        <small>Y coordinates: 500 to 899</small><br><br>
+                        <span style="background: rgba(0,0,0,0.3); padding: 5px 15px; border-radius: 5px;">
+                            CVC at Y=650 ✓
+                        </span>
+                    </div>
+                </div>
+                <p style="margin-top: 15px; color: #64748b;">
+                    <strong>Total Merged Height = 500 + 400 = 900px</strong>
+                </p>
+            </div>
+
+            <div class="formula-box">
+                <h4>📏 The Rule:</h4>
+                <div class="formula">
+                    IF coordinate.Y &lt; frontImageHeight → belongs to FRONT<br>
+                    IF coordinate.Y ≥ frontImageHeight → belongs to BACK
+                </div>
+            </div>
+        </div>
+
+        <!-- Page 2: Complete Flow Step by Step -->
+        <div class="page">
+            <h2>📋 Complete Flow - Step by Step</h2>
+
+            <div class="step-box">
+                <h4><span class="step-num">1</span> User Uploads Folder</h4>
+                <p>User selects main folder containing customer subfolders with credit card images.</p>
+                <div class="code-block">
+main_folder/
+├── CUSTOMER_A/
+│   ├── <span class="highlight">front.jpg</span>  (500px height)
+│   └── <span class="highlight2">back.jpg</span>   (400px height)
+                </div>
+            </div>
+
+            <div class="flow-arrow">⬇️</div>
+
+            <div class="step-box">
+                <h4><span class="step-num">2</span> Call /categorize API</h4>
+                <p><strong>WHY:</strong> To identify which images are credit cards and mark them as potential front/back.</p>
+                <div class="code-block">
+<span class="highlight3">POST /categorize</span>
+Input: [front.jpg, back.jpg]
+Output: { categories: [{ type: "credit_cards", files: [...] }] }
+                </div>
+            </div>
+
+            <div class="flow-arrow">⬇️</div>
+
+            <div class="step-box">
+                <h4><span class="step-num">3</span> Call /group_credit_cards API</h4>
+                <p><strong>WHY:</strong> To pair the front image with its matching back image.</p>
+                <div class="code-block">
+<span class="highlight3">POST /group_credit_cards</span>
+Input: images + categorize result
+Output: { credit_cards_group: [{ <span class="highlight">front: "front.jpg"</span>, <span class="highlight2">back: "back.jpg"</span> }] }
+                </div>
+            </div>
+
+            <div class="flow-arrow">⬇️</div>
+
+            <div class="step-box">
+                <h4><span class="step-num">4</span> Merge Images Vertically</h4>
+                <p><strong>WHY:</strong> API needs to see complete card info (front + back) to detect all sensitive data.</p>
+                <div class="code-block">
+<span class="highlight">front.jpg</span> (height: 500px)  ─┐
+                              ├─→  <span class="highlight3">merged.jpg</span> (height: 900px)
+<span class="highlight2">back.jpg</span>  (height: 400px)  ─┘
+
+<span class="highlight">Front is placed on TOP (Y: 0 to 499)</span>
+<span class="highlight2">Back is placed BELOW (Y: 500 to 899)</span>
+                </div>
+                <p><strong>⚠️ IMPORTANT:</strong> We save the front image height (500px) for later splitting!</p>
+            </div>
+        </div>
+
+        <!-- Page 3: API Call & Coordinate Splitting -->
+        <div class="page">
+            <div class="step-box">
+                <h4><span class="step-num">5</span> Call /credit_card API (OCR/Redaction)</h4>
+                <p><strong>WHY:</strong> To get exact coordinates (X, Y positions) of card numbers and CVCs.</p>
+                <div class="code-block">
+<span class="highlight3">POST /credit_card</span>
+Input: merged.jpg (900px height)
+
+Output:
+{
+  "redaction_metadata": {
+    "pages": [{ "width": 800, "height": 900 }],
+    
+    "<span class="highlight">card_number_boxes</span>": [
+      { "polygon": [
+          {"x": 100, <span class="highlight">"y": 300</span>},  ← Y=300 (within 0-499, so FRONT)
+          {"x": 400, "y": 300},
+          {"x": 400, "y": 350},
+          {"x": 100, "y": 350}
+      ]}
+    ],
+    
+    "<span class="highlight2">cvc_boxes</span>": [
+      { "polygon": [
+          {"x": 600, <span class="highlight2">"y": 650</span>},  ← Y=650 (above 500, so BACK)
+          {"x": 680, "y": 650},
+          {"x": 680, "y": 690},
+          {"x": 600, "y": 690}
+      ]}
+    ]
+  }
+}
+                </div>
+            </div>
+
+            <div class="flow-arrow">⬇️</div>
+
+            <div class="step-box">
+                <h4><span class="step-num">6</span> Split Coordinates by Height</h4>
+                <p><strong>WHY:</strong> To know which redaction boxes apply to which original image.</p>
+                
+                <div class="formula-box">
+                    <h4>📐 Splitting Logic:</h4>
+                    <div class="formula">
+                        Front Image Height = 500px<br><br>
+                        Card Number Y = 300 → 300 &lt; 500 → <span style="color: #667eea;">FRONT IMAGE</span><br>
+                        CVC Y = 650 → 650 ≥ 500 → <span style="color: #374151;">BACK IMAGE</span>
+                    </div>
+                </div>
+
+                <div class="example-box">
+                    <h4>🔢 Coordinate Adjustment for Back Image:</h4>
+                    <p>
+                        When applying coordinates to the BACK image, we must <strong>subtract the front height</strong> 
+                        because the back image starts at Y=0, not Y=500.
+                    </p>
+                    <div class="code-block" style="background: #1e40af;">
+Original CVC Y in merged image: <span class="highlight2">650</span>
+Front image height: <span class="highlight">500</span>
+Adjusted CVC Y for back image: <span class="highlight2">650</span> - <span class="highlight">500</span> = <span class="highlight3">150</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page 4: Apply Redaction & Output -->
+        <div class="page">
+            <div class="step-box">
+                <h4><span class="step-num">7</span> Apply Redaction to SEPARATE Images</h4>
+                <p><strong>WHY:</strong> Client wants separate redacted files, not merged.</p>
+                
+                <div class="split-diagram">
+                    <div class="split-item front">
+                        <div class="box">
+                            <strong>FRONT.jpg</strong><br>
+                            <small>Original: 500px height</small><br><br>
+                            Apply: Card Number Box<br>
+                            at Y = <strong>300</strong> (unchanged)
+                        </div>
+                        <div class="flow-arrow">⬇️</div>
+                        <div class="box" style="background: #c7d2fe;">
+                            <strong>FRONT_REDACTED.jpg</strong><br>
+                            Card number masked ████
+                        </div>
+                    </div>
+                    
+                    <div class="split-item back">
+                        <div class="box">
+                            <strong>BACK.jpg</strong><br>
+                            <small>Original: 400px height</small><br><br>
+                            Apply: CVC Box<br>
+                            at Y = <strong>150</strong> (adjusted from 650)
+                        </div>
+                        <div class="flow-arrow">⬇️</div>
+                        <div class="box" style="background: #d1d5db;">
+                            <strong>BACK_REDACTED.jpg</strong><br>
+                            CVC masked ███
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">⬇️</div>
+
+            <div class="step-box">
+                <h4><span class="step-num">8</span> Output: Separate Files</h4>
+                <p><strong>Result:</strong> Two separate redacted images, NOT one merged image.</p>
+                <div class="code-block">
+Output/
+├── <span class="highlight">front_redacted.jpg</span>  ← Card number masked
+└── <span class="highlight2">back_redacted.jpg</span>   ← CVC masked
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Page 5: Key Points -->
+        <div class="page">
+            <h2>🔑 Key Points Summary</h2>
+
+            <div class="why-box">
+                <h4>1️⃣ Why Merge?</h4>
+                <p>API needs to see complete card (front + back) to find ALL sensitive data in ONE call.</p>
+            </div>
+
+            <div class="why-box">
+                <h4>2️⃣ Why Split?</h4>
+                <p>Client wants SEPARATE redacted images, not one merged file.</p>
+            </div>
+
+            <div class="why-box">
+                <h4>3️⃣ How to Split?</h4>
+                <p>
+                    Use the <strong>Y coordinate</strong> from API response:<br>
+                    • Y &lt; front_height → FRONT image<br>
+                    • Y ≥ front_height → BACK image (adjust Y by subtracting front_height)
+                </p>
+            </div>
+
+            <div class="why-box">
+                <h4>4️⃣ Why Adjust Y for Back?</h4>
+                <p>
+                    In merged image, back starts at Y=500. But original back image starts at Y=0.<br>
+                    So: <strong>New Y = Original Y - Front Height</strong>
+                </p>
+            </div>
+
+            <h2>📝 Formula Reference</h2>
+            
+            <div class="formula-box">
+                <div class="formula">
+<strong>Merged Image:</strong>
+Total Height = Front Height + Back Height
+
+<strong>Coordinate Belongs To:</strong>
+IF box.Y < Front Height → FRONT
+IF box.Y ≥ Front Height → BACK
+
+<strong>Adjusted Y for Back:</strong>
+Back Y = Original Y - Front Height
+                </div>
+            </div>
+
+            <div class="example-box">
+                <h4>📌 Real Example:</h4>
+                <table>
+                    <tr>
+                        <th>Value</th>
+                        <th>Number</th>
+                    </tr>
+                    <tr>
+                        <td>Front Image Height</td>
+                        <td>500px</td>
+                    </tr>
+                    <tr>
+                        <td>Back Image Height</td>
+                        <td>400px</td>
+                    </tr>
+                    <tr>
+                        <td>Merged Height</td>
+                        <td>900px</td>
+                    </tr>
+                    <tr>
+                        <td>Card Number Y (from API)</td>
+                        <td>300 → FRONT (300 < 500)</td>
+                    </tr>
+                    <tr>
+                        <td>CVC Y (from API)</td>
+                        <td>650 → BACK (650 ≥ 500)</td>
+                    </tr>
+                    <tr>
+                        <td>CVC Y (adjusted for back)</td>
+                        <td>650 - 500 = 150</td>
+                    </tr>
+                </table>
+            </div>
+
+        </div>
+    </div>
+    
+    <button class="print-btn" onclick="window.print()">🖨️ Save as PDF</button>
+    <button class="print-btn" style="right: 200px;" onclick="downloadHTML()">📥 Download HTML</button>
+    <script>
+        function downloadHTML() {
+            const html = document.documentElement.outerHTML;
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'CC_Redaction_Pipeline_Technical_Flow.html';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
