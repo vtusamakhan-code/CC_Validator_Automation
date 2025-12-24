@@ -60,6 +60,7 @@ function parseCSVLine(line: string): string[] {
 export function generateCSV(rows: CSVRow[]): string {
   if (rows.length === 0) return '';
 
+  // Exclude image URL columns from CSV output - they're only for UI display
   const headers = ['Customer name', 'filename', 'CCN Expected', 'CCN Actual', 'Luhn test Expected', 'Luhn Test Actual'];
   
   const escapeValue = (val: string): string => {

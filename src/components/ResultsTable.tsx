@@ -1,5 +1,5 @@
 import { CSVRow } from '@/lib/csvUtils';
-import { CheckCircle2, XCircle, Minus } from 'lucide-react';
+import { CheckCircle2, XCircle, Minus, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -9,6 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 
 interface ResultsTableProps {
   rows: CSVRow[];
@@ -33,6 +34,38 @@ export function ResultsTable({ rows }: ResultsTableProps) {
     return <XCircle className="w-4 h-4 text-destructive" />;
   };
 
+  const renderImageLink = (url: string, label: string) => {
+    if (!url || url.trim() === '') {
+      return <span className="text-muted-foreground text-xs">—</span>;
+    }
+    
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-7 px-2 text-xs"
+        onClick={() => {
+          // Open image in new window
+          const newWindow = window.open();
+          if (newWindow) {
+            newWindow.document.write(`
+              <html>
+                <head><title>${label}</title></head>
+                <body style="margin:0;padding:20px;background:#f5f5f5;display:flex;justify-content:center;align-items:center;min-height:100vh;">
+                  <img src="${url}" style="max-width:100%;max-height:100vh;box-shadow:0 4px 6px rgba(0,0,0,0.1);" alt="${label}" />
+                </body>
+              </html>
+            `);
+          }
+        }}
+      >
+        <ImageIcon className="w-3 h-3 mr-1" />
+        {label}
+        <ExternalLink className="w-3 h-3 ml-1" />
+      </Button>
+    );
+  };
+
   return (
     <div className="bg-card rounded-lg border border-border overflow-hidden">
       <ScrollArea className="h-[400px]">
@@ -45,6 +78,8 @@ export function ResultsTable({ rows }: ResultsTableProps) {
               <TableHead className="font-semibold text-foreground font-mono">CCN Actual</TableHead>
               <TableHead className="font-semibold text-foreground text-center">Expected</TableHead>
               <TableHead className="font-semibold text-foreground text-center">Actual</TableHead>
+              <TableHead className="font-semibold text-foreground text-center">Original Image</TableHead>
+              <TableHead className="font-semibold text-foreground text-center">Redacted Image</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -73,6 +108,12 @@ export function ResultsTable({ rows }: ResultsTableProps) {
                 </TableCell>
                 <TableCell className="text-center">
                   {renderStatus(row['Luhn Test Actual'])}
+                </TableCell>
+                <TableCell className="text-center">
+                  {renderImageLink(row['Original_img_url'] || '', 'Original')}
+                </TableCell>
+                <TableCell className="text-center">
+                  {renderImageLink(row['Redacted_img_url'] || '', 'Redacted')}
                 </TableCell>
               </TableRow>
             ))}
