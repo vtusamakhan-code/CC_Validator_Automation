@@ -33,6 +33,38 @@ export interface CreditCardPair {
   back: string;
 }
 
+// Redaction API Types
+export interface PolygonPoint {
+  x: number;
+  y: number;
+}
+
+export interface RedactionBox {
+  page: number;
+  polygon: PolygonPoint[];
+}
+
+export interface PageInfo {
+  page: number;
+  width: number;
+  height: number;
+  unit: string;
+}
+
+export interface RedactionMetadata {
+  pages: PageInfo[];
+  card_number_boxes: RedactionBox[];
+  cvc_boxes: RedactionBox[];
+}
+
+export interface RedactionResponse {
+  document_type: {
+    value: string;
+    confidence: number;
+  };
+  redaction_metadata: RedactionMetadata;
+}
+
 export async function sendToOCR(imageBlob: Blob): Promise<string> {
   const formData = new FormData();
   formData.append('file', imageBlob, 'credit_card.jpg');
@@ -50,12 +82,17 @@ export async function sendToOCR(imageBlob: Blob): Promise<string> {
   
   console.log('OCR Raw Response:', JSON.stringify(data, null, 2));
   
-  if (data.Credit_Card_Number?.value) {
+  // Check if value exists and is not empty
+  if (data.Credit_Card_Number?.value && data.Credit_Card_Number.value.trim() !== '') {
     const cleanedCCN = data.Credit_Card_Number.value.replace(/\D/g, '');
-    console.log('OCR Extracted CCN:', data.Credit_Card_Number.value, '-> Cleaned:', cleanedCCN);
-    return cleanedCCN;
+    if (cleanedCCN.length > 0) {
+      console.log('OCR Extracted CCN:', data.Credit_Card_Number.value, '-> Cleaned:', cleanedCCN);
+      return cleanedCCN;
+    }
   }
   
+  // Log the issue for debugging
+  console.warn('⚠️ OCR returned empty card number. Confidence:', data.Credit_Card_Number?.confidence);
   throw new Error('No credit card number found in image');
 }
 
@@ -109,4 +146,22 @@ export async function groupCreditCards(
     }
   }
   return pairs;
+}
+
+export async function getRedactionMetadata(imageBlob: Blob): Promise<RedactionResponse> {
+  const formData = new FormData();
+  formData.append('file', imageBlob, 'credit_card.jpg');
+
+  const response = await fetch(`${OCR_BASE_URL}/credit_card`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Redaction API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data: RedactionResponse = await response.json();
+  console.log('Redaction Response:', JSON.stringify(data, null, 2));
+  return data;
 }
