@@ -24,6 +24,24 @@ export function ResultsTable({ rows }: ResultsTableProps) {
     );
   }
 
+  // Helper function to get value from row with case-insensitive column name matching
+  const getRowValue = (row: CSVRow, possibleKeys: string[]): string => {
+    for (const key of possibleKeys) {
+      // Direct match
+      if (row[key] !== undefined) {
+        return row[key] || '';
+      }
+      // Case-insensitive match
+      const normalizedKey = key.toLowerCase();
+      for (const rowKey in row) {
+        if (rowKey.toLowerCase() === normalizedKey) {
+          return row[rowKey] || '';
+        }
+      }
+    }
+    return '';
+  };
+
   const renderStatus = (value: string) => {
     if (!value) {
       return <Minus className="w-4 h-4 text-muted-foreground" />;
@@ -76,8 +94,8 @@ export function ResultsTable({ rows }: ResultsTableProps) {
               <TableHead className="font-semibold text-foreground">Filename</TableHead>
               <TableHead className="font-semibold text-foreground font-mono">CCN Expected</TableHead>
               <TableHead className="font-semibold text-foreground font-mono">CCN Actual</TableHead>
-              <TableHead className="font-semibold text-foreground text-center">Expected</TableHead>
-              <TableHead className="font-semibold text-foreground text-center">Actual</TableHead>
+              <TableHead className="font-semibold text-foreground text-center">Luhn/BIN Expected</TableHead>
+              <TableHead className="font-semibold text-foreground text-center">Luhn/BIN Actual</TableHead>
               <TableHead className="font-semibold text-foreground text-center">Original Image</TableHead>
               <TableHead className="font-semibold text-foreground text-center">Redacted Image</TableHead>
             </TableRow>
@@ -104,10 +122,20 @@ export function ResultsTable({ rows }: ResultsTableProps) {
                   )}
                 </TableCell>
                 <TableCell className="text-center">
-                  {renderStatus(row['Luhn test Expected'])}
+                  {renderStatus(getRowValue(row, [
+                    'Luhn/BIN Expected',
+                    'Luhn/Bin Expected',
+                    'Luhn test Expected',
+                    'Luhn Test Expected'
+                  ]))}
                 </TableCell>
                 <TableCell className="text-center">
-                  {renderStatus(row['Luhn Test Actual'])}
+                  {renderStatus(getRowValue(row, [
+                    'Luhn/BIN Actual',
+                    'Luhn/Bin Actual',
+                    'Luhn Test Actual',
+                    'Luhn test Actual'
+                  ]))}
                 </TableCell>
                 <TableCell className="text-center">
                   {renderImageLink(row['Original_img_url'] || '', 'Original')}

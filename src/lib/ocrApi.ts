@@ -1,4 +1,5 @@
-const OCR_BASE_URL = 'https://gb-ocr-stage.vertekx.com';
+// Use environment variable or fallback to default
+const OCR_BASE_URL = import.meta.env.VITE_OCR_BASE_URL || 'https://gb-ocr-stage.vertekx.com';
 
 export interface OCRResponse {
   Credit_Card_Number?: {

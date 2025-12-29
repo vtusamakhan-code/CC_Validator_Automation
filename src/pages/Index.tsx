@@ -6,7 +6,7 @@ import { FileUpload } from '@/components/FileUpload';
 import { ProcessingStatus } from '@/components/ProcessingStatus';
 import { ResultsTable } from '@/components/ResultsTable';
 import { FolderUploadPreview } from '@/components/FolderUploadPreview';
-import { parseCSV, generateCSV, downloadCSV, CSVRow } from '@/lib/csvUtils';
+import { parseCSV, generateCSV, downloadCSV, CSVRow, getLuhnBinActualColumn } from '@/lib/csvUtils';
 import { sendToOCR, categorizeImages, groupCreditCards, CreditCardPair, getRedactionMetadata } from '@/lib/ocrApi';
 import { luhn_validate } from '@/lib/luhn';
 import { combineImagesVertically, applyRedactionToImage, applyRedactionToSeparateImages, blobToDataURL } from '@/lib/imageUtils';
@@ -68,6 +68,64 @@ export default function Index() {
   const [currentFolder, setCurrentFolder] = useState('');
   const [status, setStatus] = useState<'idle' | 'processing' | 'complete' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Helper function to set Luhn/BIN Actual result (handles both column name formats and case variations)
+  const setLuhnBinResult = useCallback((row: CSVRow, result: string): CSVRow => {
+    const updatedRow = { ...row };
+    
+    // Find the actual column name used in the row (case-insensitive)
+    const findColumnName = (possibleNames: string[]): string | null => {
+      // First try exact match
+      for (const name of possibleNames) {
+        if (updatedRow[name] !== undefined) {
+          return name;
+        }
+      }
+      // Then try case-insensitive match
+      for (const name of possibleNames) {
+        const normalizedName = name.toLowerCase();
+        for (const rowKey in updatedRow) {
+          if (rowKey.toLowerCase() === normalizedName) {
+            return rowKey;
+          }
+        }
+      }
+      return null;
+    };
+    
+    // Try to find the Actual column name
+    const actualColumnName = findColumnName([
+      'Luhn/BIN Actual',
+      'Luhn/Bin Actual',
+      'Luhn Test Actual',
+      'Luhn test Actual'
+    ]);
+    
+    // Try to find the Expected column name to determine format
+    const expectedColumnName = findColumnName([
+      'Luhn/BIN Expected',
+      'Luhn/Bin Expected',
+      'Luhn test Expected',
+      'Luhn Test Expected'
+    ]);
+    
+    // Use the found column name or default to new format
+    if (actualColumnName) {
+      updatedRow[actualColumnName] = result;
+    } else if (expectedColumnName) {
+      // If we found Expected column, use matching format for Actual
+      if (expectedColumnName.includes('/Bin') || expectedColumnName.includes('/BIN')) {
+        updatedRow['Luhn/Bin Actual'] = result;
+      } else {
+        updatedRow['Luhn Test Actual'] = result;
+      }
+    } else {
+      // Default to new format
+      updatedRow['Luhn/BIN Actual'] = result;
+    }
+    
+    return updatedRow;
+  }, []);
 
   const handleCSVUpload = useCallback(async (files: File[]) => {
     const file = files[0];
@@ -202,13 +260,12 @@ export default function Index() {
         // Update CSV rows with NOT_FOUND when folder is missing
         for (const idx of rowIndices) {
           if (!updatedRows[idx]['CCN Actual']) {
-            updatedRows[idx] = {
+            updatedRows[idx] = setLuhnBinResult({
               ...updatedRows[idx],
               'CCN Actual': 'FOLDER_NOT_FOUND',
-              'Luhn Test Actual': 'Fail',
               'Original_img_url': '',
               'Redacted_img_url': '',
-            };
+            }, 'Fail');
           }
         }
         
@@ -278,13 +335,12 @@ export default function Index() {
           for (const idx of rowIndices) {
             if (normalizeForComparison(updatedRows[idx].filename) === normalizeForComparison(filename)) {
               console.log(`✅ Matched CSV row ${idx}: "${updatedRows[idx].filename}" with file "${filename}"`);
-              updatedRows[idx] = {
+              updatedRows[idx] = setLuhnBinResult({
                 ...updatedRows[idx],
                 'CCN Actual': ccn,
-                'Luhn Test Actual': luhnResult,
                 'Original_img_url': originalImgUrl,
                 'Redacted_img_url': redactedImgUrl,
-              };
+              }, luhnResult);
               matched = true;
             }
           }
@@ -293,13 +349,12 @@ export default function Index() {
             console.warn(`⚠️ No CSV filename match found for "${filename}". Available CSV filenames:`, 
               rowIndices.map(idx => updatedRows[idx].filename));
             console.log(`   Updating first row ${rowIndices[0]} with filename: ${updatedRows[rowIndices[0]].filename}`);
-            updatedRows[rowIndices[0]] = {
+            updatedRows[rowIndices[0]] = setLuhnBinResult({
               ...updatedRows[rowIndices[0]],
               'CCN Actual': ccn,
-              'Luhn Test Actual': luhnResult,
               'Original_img_url': originalImgUrl,
               'Redacted_img_url': redactedImgUrl,
-            };
+            }, luhnResult);
           }
         } else {
           // Scenario 1: 2+ images - use categorize and group APIs
@@ -363,13 +418,12 @@ export default function Index() {
                   const rowFilename = updatedRows[idx].filename;
                   if (missingFiles.some(f => normalizeForComparison(f) === normalizeForComparison(rowFilename))) {
                     console.log(`   Updating CSV row ${idx} with NOT_FOUND for missing file`);
-                    updatedRows[idx] = {
+                    updatedRows[idx] = setLuhnBinResult({
                       ...updatedRows[idx],
                       'CCN Actual': 'NOT_FOUND',
-                      'Luhn Test Actual': 'Fail',
                       'Original_img_url': '',
                       'Redacted_img_url': '',
-                    };
+                    }, 'Fail');
                   }
                 }
                 continue;
@@ -396,13 +450,12 @@ export default function Index() {
                   const rowFilename = updatedRows[idx].filename;
                   if (normalizeForComparison(singleFileName) === normalizeForComparison(rowFilename)) {
                     console.log(`   Updating CSV row ${idx} with NOT_FOUND for missing file`);
-                    updatedRows[idx] = {
+                    updatedRows[idx] = setLuhnBinResult({
                       ...updatedRows[idx],
                       'CCN Actual': 'NOT_FOUND',
-                      'Luhn Test Actual': 'Fail',
                       'Original_img_url': '',
                       'Redacted_img_url': '',
-                    };
+                    }, 'Fail');
                   }
                 }
                 continue;
@@ -548,13 +601,12 @@ export default function Index() {
                 if (normalizedMatchFilename === normalizedRowFilename) {
                   console.log(`✅ Matched CSV row ${idx}: "${rowFilename}" with file "${matchFilename}"`);
                   const imageUrlData = imageUrls.get(matchFilename) || { original: '', redacted: '' };
-                  updatedRows[idx] = {
+                  updatedRows[idx] = setLuhnBinResult({
                     ...updatedRows[idx],
                     'CCN Actual': ccn,
-                    'Luhn Test Actual': luhnResult,
                     'Original_img_url': imageUrlData.original,
                     'Redacted_img_url': imageUrlData.redacted,
-                  };
+                  }, luhnResult);
                   updatedIndices.add(idx);
                   updatedCount++;
                   break; // Found match for this row, move to next row
@@ -562,8 +614,8 @@ export default function Index() {
               }
             }
             
-              // If no filename match found, try to update empty rows
-              if (updatedCount === 0) {
+            // If no filename match found, try to update empty rows
+            if (updatedCount === 0) {
               console.warn(`⚠️ No CSV filename match found. Available CSV filenames:`, 
                 rowIndices.map(idx => updatedRows[idx].filename));
               console.warn(`   Trying to update empty rows...`);
@@ -579,13 +631,12 @@ export default function Index() {
                       break;
                     }
                   }
-                  updatedRows[idx] = {
+                  updatedRows[idx] = setLuhnBinResult({
                     ...updatedRows[idx],
                     'CCN Actual': ccn,
-                    'Luhn Test Actual': luhnResult,
                     'Original_img_url': imageUrlData.original,
                     'Redacted_img_url': imageUrlData.redacted,
-                  };
+                  }, luhnResult);
                   updatedIndices.add(idx);
                   updatedCount++;
                   // For paired cards, update up to 2 rows; for single, update 1
@@ -658,13 +709,12 @@ export default function Index() {
                   if (normalizeForComparison(rowFilename) === normalizeForComparison(file.name)) {
                     if (!updatedRows[idx]['CCN Actual']) {
                       console.log(`   ✅ Updated CSV row ${idx} for ungrouped file ${file.name}`);
-                      updatedRows[idx] = {
+                      updatedRows[idx] = setLuhnBinResult({
                         ...updatedRows[idx],
                         'CCN Actual': ccn,
-                        'Luhn Test Actual': luhnResult,
                         'Original_img_url': originalImgUrl,
                         'Redacted_img_url': redactedImgUrl,
-                      };
+                      }, luhnResult);
                     }
                   }
                 }
@@ -684,13 +734,12 @@ export default function Index() {
         // Still update CSV rows with error status
         for (const idx of rowIndices) {
           if (!updatedRows[idx]['CCN Actual']) {
-            updatedRows[idx] = {
+            updatedRows[idx] = setLuhnBinResult({
               ...updatedRows[idx],
               'CCN Actual': 'PROCESSING_ERROR',
-              'Luhn Test Actual': 'Fail',
               'Original_img_url': '',
               'Redacted_img_url': '',
-            };
+            }, 'Fail');
           }
         }
         
@@ -888,7 +937,10 @@ export default function Index() {
                   {csvRows.filter(r => r['CCN Actual']).length} of {csvRows.length} processed
                 </span>
                 <span>
-                  {csvRows.filter(r => r['Luhn Test Actual'] === 'Pass').length} passed Luhn validation
+                  {csvRows.filter(r => {
+                    const actualValue = r['Luhn/BIN Actual'] || r['Luhn/Bin Actual'] || r['Luhn Test Actual'] || r['Luhn test Actual'] || '';
+                    return actualValue.toLowerCase() === 'pass';
+                  }).length} passed Luhn/BIN validation
                 </span>
               </div>
             )}
