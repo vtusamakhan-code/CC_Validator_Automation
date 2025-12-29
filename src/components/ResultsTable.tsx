@@ -76,8 +76,8 @@ export function ResultsTable({ rows }: ResultsTableProps) {
               <TableHead className="font-semibold text-foreground">Filename</TableHead>
               <TableHead className="font-semibold text-foreground font-mono">CCN Expected</TableHead>
               <TableHead className="font-semibold text-foreground font-mono">CCN Actual</TableHead>
-              <TableHead className="font-semibold text-foreground text-center">Expected</TableHead>
-              <TableHead className="font-semibold text-foreground text-center">Actual</TableHead>
+              <TableHead className="font-semibold text-foreground text-center">Luhn/BIN Expected</TableHead>
+              <TableHead className="font-semibold text-foreground text-center">Luhn/BIN Actual</TableHead>
               <TableHead className="font-semibold text-foreground text-center">Original Image</TableHead>
               <TableHead className="font-semibold text-foreground text-center">Redacted Image</TableHead>
             </TableRow>
@@ -104,10 +104,10 @@ export function ResultsTable({ rows }: ResultsTableProps) {
                   )}
                 </TableCell>
                 <TableCell className="text-center">
-                  {renderStatus(row['Luhn test Expected'])}
+                  {renderStatus(row['Luhn/BIN Expected'] || row['Luhn test Expected'] || '')}
                 </TableCell>
                 <TableCell className="text-center">
-                  {renderStatus(row['Luhn Test Actual'])}
+                  {renderStatus(row['Luhn/BIN Actual'] || row['Luhn Test Actual'] || '')}
                 </TableCell>
                 <TableCell className="text-center">
                   {renderImageLink(row['Original_img_url'] || '', 'Original')}
