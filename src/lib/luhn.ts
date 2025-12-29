@@ -22,7 +22,7 @@ const CreditCardValidator = (function () {
    * Internal: Performs the Luhn Algorithm
    */
   function luhnCheck(number: string): boolean {
-    let sum = 0;
+  let sum = 0;
     let shouldDouble = false;
     // Loop through digits from right to left
     for (let i = number.length - 1; i >= 0; i--) {
@@ -68,7 +68,7 @@ const CreditCardValidator = (function () {
     // Diners Club: 300-305, 36, 38, 39
     if (/^3(?:0[0-5]|[689])/.test(number)) {
       return LENGTHS.DINERS.includes(number.length);
-    }
+  }
     // UnionPay: 62
     if (/^62/.test(number)) {
       return LENGTHS.UNIONPAY.includes(number.length);
@@ -76,7 +76,7 @@ const CreditCardValidator = (function () {
     // Maestro: Multiple prefixes
     if (/^(5018|5020|5038|58|6304|6759|676[1-3])/.test(number)) {
       return LENGTHS.MAESTRO.includes(number.length);
-    }
+}
     return false; // Unknown type
   }
 

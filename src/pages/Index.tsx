@@ -69,15 +69,61 @@ export default function Index() {
   const [status, setStatus] = useState<'idle' | 'processing' | 'complete' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Helper function to set Luhn/BIN Actual result (handles both column name formats)
+  // Helper function to set Luhn/BIN Actual result (handles both column name formats and case variations)
   const setLuhnBinResult = useCallback((row: CSVRow, result: string): CSVRow => {
     const updatedRow = { ...row };
-    // Use the column name that exists in the row, or default to new format
-    if (updatedRow['Luhn/BIN Actual'] !== undefined || updatedRow['Luhn/BIN Expected'] !== undefined) {
-      updatedRow['Luhn/BIN Actual'] = result;
+    
+    // Find the actual column name used in the row (case-insensitive)
+    const findColumnName = (possibleNames: string[]): string | null => {
+      // First try exact match
+      for (const name of possibleNames) {
+        if (updatedRow[name] !== undefined) {
+          return name;
+        }
+      }
+      // Then try case-insensitive match
+      for (const name of possibleNames) {
+        const normalizedName = name.toLowerCase();
+        for (const rowKey in updatedRow) {
+          if (rowKey.toLowerCase() === normalizedName) {
+            return rowKey;
+          }
+        }
+      }
+      return null;
+    };
+    
+    // Try to find the Actual column name
+    const actualColumnName = findColumnName([
+      'Luhn/BIN Actual',
+      'Luhn/Bin Actual',
+      'Luhn Test Actual',
+      'Luhn test Actual'
+    ]);
+    
+    // Try to find the Expected column name to determine format
+    const expectedColumnName = findColumnName([
+      'Luhn/BIN Expected',
+      'Luhn/Bin Expected',
+      'Luhn test Expected',
+      'Luhn Test Expected'
+    ]);
+    
+    // Use the found column name or default to new format
+    if (actualColumnName) {
+      updatedRow[actualColumnName] = result;
+    } else if (expectedColumnName) {
+      // If we found Expected column, use matching format for Actual
+      if (expectedColumnName.includes('/Bin') || expectedColumnName.includes('/BIN')) {
+        updatedRow['Luhn/Bin Actual'] = result;
+      } else {
+        updatedRow['Luhn Test Actual'] = result;
+      }
     } else {
-      updatedRow['Luhn Test Actual'] = result;
+      // Default to new format
+      updatedRow['Luhn/BIN Actual'] = result;
     }
+    
     return updatedRow;
   }, []);
 
@@ -568,8 +614,8 @@ export default function Index() {
               }
             }
             
-              // If no filename match found, try to update empty rows
-              if (updatedCount === 0) {
+            // If no filename match found, try to update empty rows
+            if (updatedCount === 0) {
               console.warn(`⚠️ No CSV filename match found. Available CSV filenames:`, 
                 rowIndices.map(idx => updatedRows[idx].filename));
               console.warn(`   Trying to update empty rows...`);
@@ -891,7 +937,10 @@ export default function Index() {
                   {csvRows.filter(r => r['CCN Actual']).length} of {csvRows.length} processed
                 </span>
                 <span>
-                  {csvRows.filter(r => (r['Luhn/BIN Actual'] || r['Luhn Test Actual']) === 'Pass').length} passed Luhn/BIN validation
+                  {csvRows.filter(r => {
+                    const actualValue = r['Luhn/BIN Actual'] || r['Luhn/Bin Actual'] || r['Luhn Test Actual'] || r['Luhn test Actual'] || '';
+                    return actualValue.toLowerCase() === 'pass';
+                  }).length} passed Luhn/BIN validation
                 </span>
               </div>
             )}
